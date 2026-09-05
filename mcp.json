@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "nl2sh-plus": {
+      "command": "python",
+      "args": ["D:/Model_finetuing/mcp_server/server.py"],
+      "env": {}
+    }
+  }
+}

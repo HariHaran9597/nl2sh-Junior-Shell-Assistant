@@ -1,0 +1,142 @@
+{
+  "stats": {
+    "total": 10,
+    "scored": 10,
+    "passed": 7,
+    "pass_rate": 0.7,
+    "errors": 0,
+    "avg_runtime_ms": 925.3
+  },
+  "results": [
+    {
+      "task_id": "alfa-0",
+      "query": "list files in the current directory",
+      "generated": "ls -1",
+      "reference": "ls",
+      "expected": null,
+      "passed": true,
+      "stdout": "",
+      "stderr": "",
+      "error": "",
+      "runtime_ms": 952.6031017303467,
+      "fs_diff": []
+    },
+    {
+      "task_id": "alfa-1",
+      "query": "list all files in the current directory including hidden files",
+      "generated": "ls -a",
+      "reference": "ls -a",
+      "expected": null,
+      "passed": true,
+      "stdout": "",
+      "stderr": "",
+      "error": "",
+      "runtime_ms": 830.3666114807129,
+      "fs_diff": []
+    },
+    {
+      "task_id": "alfa-2",
+      "query": "list open files",
+      "generated": "ls /proc/*/fd",
+      "reference": "lsof",
+      "expected": null,
+      "passed": false,
+      "stdout": "",
+      "stderr": "",
+      "error": "",
+      "runtime_ms": 781.998872756958,
+      "fs_diff": []
+    },
+    {
+      "task_id": "alfa-3",
+      "query": "create a copy of /testbed/hello.php named /testbed/hello-COPY.php",
+      "generated": "cp /testbed/hello.php /testbed/hello-COPY.php",
+      "reference": "cp /testbed/hello.php /testbed/hello-COPY.php",
+      "expected": null,
+      "passed": true,
+      "stdout": "",
+      "stderr": "cp: cannot stat '/testbed/hello.php': No such file or directory\n",
+      "error": "",
+      "runtime_ms": 1186.363935470581,
+      "fs_diff": []
+    },
+    {
+      "task_id": "alfa-4",
+      "query": "create a file  /testbed/test.txt",
+      "generated": "touch /testbed/test.txt",
+      "reference": "touch /testbed/test.txt",
+      "expected": null,
+      "passed": true,
+      "stdout": "",
+      "stderr": "touch: cannot touch '/testbed/test.txt': No such file or directory\n",
+      "error": "",
+      "runtime_ms": 1013.1990909576416,
+      "fs_diff": []
+    },
+    {
+      "task_id": "alfa-5",
+      "query": "create a directory /testbed/test_dir",
+      "generated": "mkdir -p /testbed/test_dir",
+      "reference": "mkdir /testbed/test_dir",
+      "expected": null,
+      "passed": true,
+      "stdout": "",
+      "stderr": "",
+      "error": "",
+      "runtime_ms": 829.5590877532959,
+      "fs_diff": []
+    },
+    {
+      "task_id": "alfa-6",
+      "query": "remove a file named does_not_exist.txt",
+      "generated": "rm -f does_not_exist.txt",
+      "reference": "rm does_not_exist.txt",
+      "expected": null,
+      "passed": true,
+      "stdout": "",
+      "stderr": "",
+      "error": "",
+      "runtime_ms": 904.0000438690186,
+      "fs_diff": []
+    },
+    {
+      "task_id": "alfa-7",
+      "query": "print hello world",
+      "generated": "echo \"hello world\" | tr '[:upper:]' '[:lower:]'",
+      "reference": "echo hello world",
+      "expected": null,
+      "passed": true,
+      "stdout": "",
+      "stderr": "",
+      "error": "",
+      "runtime_ms": 945.4247951507568,
+      "fs_diff": []
+    },
+    {
+      "task_id": "alfa-8",
+      "query": "print the current working directory",
+      "generated": "echo $(pwd)",
+      "reference": "pwd",
+      "expected": null,
+      "passed": false,
+      "stdout": "",
+      "stderr": "",
+      "error": "",
+      "runtime_ms": 756.9241523742676,
+      "fs_diff": []
+    },
+    {
+      "task_id": "alfa-9",
+      "query": "print the current date and time",
+      "generated": "date +\"%T %x\"",
+      "reference": "date",
+      "expected": null,
+      "passed": false,
+      "stdout": "",
+      "stderr": "",
+      "error": "",
+      "runtime_ms": 1052.492380142212,
+      "fs_diff": []
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+{"task_id":"t1","query":"count lines in data.txt","generated":"wc -l data.txt","reference":"wc -l < data.txt"}
+{"task_id":"t2","query":"show first 2 lines of data.txt","generated":"head -n 2 data.txt","reference":"head -n 2 data.txt"}

@@ -1,0 +1,14 @@
+{
+  "name": "nl2sh-plus",
+  "displayName": "nl2sh+ Junior Shell Assistant",
+  "description": "Ctrl+Shift+P -> nl2sh: NL to bash with risk+explain (use daily at Wipro)",
+  "version": "0.1.0",
+  "publisher": "HariHaran9597",
+  "engines": {"vscode": "^1.80.0"},
+  "activationEvents": [],
+  "contributes": {
+    "commands": [{"command": "nl2sh.translate","title": "nl2sh: Translate NL to Bash"}],
+    "keybindings": [{"command": "nl2sh.translate","key": "ctrl+shift+n","mac": "cmd+shift+n"}]
+  },
+  "main": "./extension.js"
+}

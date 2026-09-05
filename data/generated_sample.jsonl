@@ -1,0 +1,10 @@
+{"task_id": "alfa-0", "query": "list files in the current directory", "reference": "ls", "generated": "ls -1"}
+{"task_id": "alfa-1", "query": "list all files in the current directory including hidden files", "reference": "ls -a", "generated": "ls -a"}
+{"task_id": "alfa-2", "query": "list open files", "reference": "lsof", "generated": "ls /proc/*/fd"}
+{"task_id": "alfa-3", "query": "create a copy of /testbed/hello.php named /testbed/hello-COPY.php", "reference": "cp /testbed/hello.php /testbed/hello-COPY.php", "generated": "cp /testbed/hello.php /testbed/hello-COPY.php"}
+{"task_id": "alfa-4", "query": "create a file  /testbed/test.txt", "reference": "touch /testbed/test.txt", "generated": "touch /testbed/test.txt"}
+{"task_id": "alfa-5", "query": "create a directory /testbed/test_dir", "reference": "mkdir /testbed/test_dir", "generated": "mkdir -p /testbed/test_dir"}
+{"task_id": "alfa-6", "query": "remove a file named does_not_exist.txt", "reference": "rm does_not_exist.txt", "generated": "rm -f does_not_exist.txt"}
+{"task_id": "alfa-7", "query": "print hello world", "reference": "echo hello world", "generated": "echo \"hello world\" | tr '[:upper:]' '[:lower:]'"}
+{"task_id": "alfa-8", "query": "print the current working directory", "reference": "pwd", "generated": "echo $(pwd)"}
+{"task_id": "alfa-9", "query": "print the current date and time", "reference": "date", "generated": "date +\"%T %x\""}
