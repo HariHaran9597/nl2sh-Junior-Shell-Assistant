@@ -1,149 +1,197 @@
-# nl2sh+ — Junior Shell Assistant
+# nl2sh+
 
-[![GGUF Q4_K_M](https://img.shields.io/badge/GGUF-Q4_K_M-blue)](https://huggingface.co/justhariharan/nl2sh-1.5b-Q4_K_M-GGUF) [![InterCode 0.553 raw](https://img.shields.io/badge/InterCode-0.553%20raw-green)](./TRAINING_RESULTS.md) [![Context-aware](https://img.shields.io/badge/Context-pwd%2Bhistory-orange)] [![Risk](https://img.shields.io/badge/Risk-advisory-red)] [![MCP](https://img.shields.io/badge/MCP-ready-purple)] [![Demo](https://img.shields.io/badge/Demo-Gradio%20Space-pink)](./space/app.py)
+### A context-aware natural-language-to-Bash assistant powered by a fine-tuned Qwen2.5-Coder model
 
-**Result:** `Qwen2.5-Coder-1.5B -> 40.6k NL->Bash -> Q4_K_M -> 0.553 raw agreement vs 0.387 base -> context + advisory risk + MCP`
+[![CI](https://github.com/HariHaran9597/nl2sh-Junior-Shell-Assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/HariHaran9597/nl2sh-Junior-Shell-Assistant/actions/workflows/ci.yml)
+[![Model](https://img.shields.io/badge/model-Qwen2.5--Coder--1.5B-blue)](https://huggingface.co/justhariharan/nl2sh-1.5b-Q4_K_M-GGUF)
+[![Quantization](https://img.shields.io/badge/quantization-Q4__K__M-orange)](https://huggingface.co/justhariharan/nl2sh-1.5b-Q4_K_M-GGUF)
+[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-## ✅ Training and local release hardening complete
+`nl2sh+` translates plain-English requests into a single Bash command and presents the result with context, risk classification, explanations, and a dry-run preview. It is designed as a review-first assistant: generated commands are suggestions for a human to inspect, never instructions that the public demo executes automatically.
 
-- **Data:** NL2SH-ALFA train, **40,639 pairs**, seq_len 512
-- **Recipe:** QLoRA 4-bit (Unsloth), r=16 alpha=16 dropout=0.05, targets `[q,k,v,o,gate]`, **9,060,352 trainable (0.58%)**
-- **Schedule:** 1 epoch, batch 2 x grad_accum 4 (eff 8), lr 2e-4 cosine, warmup 100, fp16, adamw_8bit
-- **Result:** **5080/5080 steps, loss 2.363 → 0.805** (clean 66% drop, no divergence)
-- **Artifact:** `models/nl2sh-lora/adapter_model.safetensors` (**36 MB**, statically verified: 28 layers x 5 modules x rank-16 A/B = 280 tensors)
-- **Merged + quantized:** `models/gguf/nl2sh-1.5b.Q4_K_M.gguf` (local, **940 MB**) and a public Hub copy at `justhariharan/nl2sh-1.5b-Q4_K_M-GGUF`; served locally via llama.cpp. See `TRAINING_RESULTS.md` for the measured benchmark and its limitations.
+## Highlights
 
-Ask in plain English. Get a bash one-liner with risk badge + explain + dry-run. Context-aware, MCP-ready.
+- Fine-tuned Qwen2.5-Coder-1.5B-Instruct with QLoRA on 40,639 natural-language/Bash pairs.
+- Context-aware prompts using the current working directory and the last five commands.
+- Risk classification across `LOW`, `MED`, and `HIGH`, backed by a conservative `DANGER` safety policy.
+- Flag explanations and dry-run rewrites for supported destructive operations.
+- CLI with llama.cpp, Ollama, OpenAI-compatible, and mock backends.
+- MCP server exposing command generation and command explanation tools.
+- Gradio Space implementation that only generates suggestions and never executes shell commands.
+- VS Code command-palette integration for local development workflows.
+- Automated tests and GitHub Actions CI.
 
-```bash
-$ nl2sh extract tar.gz to /tmp
+## Results
+
+### Training
+
+| Metric | Result |
+|---|---:|
+| Training examples | 40,639 |
+| Trainable parameters | 9,060,352 (0.58%) |
+| Fine-tuning method | QLoRA 4-bit with Unsloth |
+| LoRA configuration | rank 16, alpha 16, dropout 0.05 |
+| Training steps | 5,080 / 5,080 |
+| Training loss | 2.363 → 0.805 |
+| Inference artifact | Q4_K_M GGUF, approximately 940 MB |
+
+### Evaluation
+
+Evaluation uses a 300-task InterCode-ALFA split with isolated fixture execution. A generated command passes when its output and filesystem change-set agree with the reference behavior; timeouts count as failures.
+
+| Model | Raw execution agreement | Gradeable-only agreement |
+|---|---:|---:|
+| Untuned Qwen2.5-Coder-1.5B Q4_K_M | 116 / 300 (0.387) | 0.230 |
+| **nl2sh+ Q4_K_M** | **166 / 300 (0.553)** | **0.448** |
+| **Measured improvement** | **+50 tasks (+0.167)** | **+0.218** |
+
+Fine-tuned performance by task difficulty was `0.72` easy, `0.54` medium, and `0.40` hard. The local Windows Git-Bash environment lacks several Linux utilities used by the benchmark, so 57 agreeing-failure cases are included in the raw score. The gradeable-only result is the more conservative figure. See [TRAINING_RESULTS.md](TRAINING_RESULTS.md) for the complete breakdown and methodology.
+
+## How it works
+
+```text
+Natural-language request
+          │
+          ▼
+Context builder ── current directory + recent history
+          │
+          ▼
+Fine-tuned model ── one Bash command
+          │
+          ├── Risk classifier
+          ├── Safety policy
+          ├── Explanation engine
+          └── Dry-run preview
+          │
+          ▼
+Human review ── copy or explicitly execute locally
+```
+
+The model generates the command. The surrounding application then analyzes it independently. Safety and risk checks do not depend on the model deciding whether its own output is safe.
+
+## Example
+
+```console
+$ nl2sh "extract the archive to /tmp"
 tar -xzf archive.tar.gz -C /tmp
   [LOW] read-only / low risk
   Explain: -x extract, -z gzip, -f file
 
-$ nl2sh now show large files
-# uses History: [tar -xzf app.tar.gz -C /tmp, ls /tmp] + Pwd: /tmp
-find /tmp -type f -exec du -h {} + | sort -rh | head
-  [LOW] read-only / low risk
-  Explain: -exec runs command per match
+$ nl2sh "delete all log files"
+find . -name '*.log' -delete
+  [MED] find permanently deletes matched paths
+  Dry-run: find . -name '*.log' -print
 
-$ nl2sh delete all logs
-find . -name "*.log" -delete
-  [MED] find modifies files
-  Explain: -delete removes matched files permanently
-  Dry-run: find . -name "*.log" -print  # dry-run: lists what would be deleted
-  Dry-run? y/n
-
-$ nl2sh delete everything in root
+$ nl2sh "delete everything from the root filesystem"
 rm -rf /
-  !! DANGER  recursive force-delete of a critical path
-  !! Refusing to run: DANGER segment. Copy it yourself if you mean it.
+  [HIGH] safety policy matched a dangerous pattern
+  Refusing to run: DANGER segment.
 ```
 
-## What beats the original
+## Quick start
 
-| Feature | Thor nl2sh (463⭐) | **nl2sh+ (this)** |
+### Install
+
+Python 3.9 or newer is required.
+
+```bash
+git clone https://github.com/HariHaran9597/nl2sh-Junior-Shell-Assistant.git
+cd nl2sh-Junior-Shell-Assistant
+python -m pip install -e ".[dev]"
+```
+
+### Try the deterministic mock backend
+
+The mock backend is useful for testing the interface without downloading a model or starting a server.
+
+```bash
+python -m cli.nl2sh --mock "extract tar.gz to /tmp"
+python -m cli.nl2sh --mock "delete all logs"
+python -m cli.nl2sh --mock "delete everything in root"
+```
+
+### Run the local GGUF model
+
+Download the public [GGUF artifact](https://huggingface.co/justhariharan/nl2sh-1.5b-Q4_K_M-GGUF), place it at `models/gguf/nl2sh-1.5b.Q4_K_M.gguf`, and provide a local llama.cpp server binary under `tools/llama.cpp/`.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\serve.ps1
+python -m cli.nl2sh "show the largest files in /tmp"
+```
+
+The server is expected at `http://127.0.0.1:8080`. Configure another compatible endpoint with `--base-url` or the environment variables documented in the CLI source.
+
+### Run the Gradio application locally
+
+```bash
+python app.py
+```
+
+For the public deployment version, upload the contents of `space/` to a Gradio Hugging Face Space. The Space downloads the public GGUF artifact on demand and never executes generated commands.
+
+## Interfaces
+
+| Interface | Purpose | Execution behavior |
 |---|---|---|
-| Model | Qwen2.5-Coder-1.5B Q4_K_M 941MB, 0.62 reported (Docker) | **Q4_K_M 940MB, 0.553 measured (easy 0.72/med 0.54/hard 0.40), +0.167 vs untuned base — see `TRAINING_RESULTS.md`** |
-| Context | stateless | **History: last 5 + Pwd injection – `find /tmp` knows you just extracted there** |
-| Safety | blocklist DANGER/CAUTION | **Risk LOW/MED/HIGH + flag explain (`man`+`shellcheck`) + dry-run (`--print` / `echo 43 files`) – 200 golden 100% HIGH flagged** |
-| MCP | none | **`mcp_server/server.py` exposes `get_shell_command(nl,pwd,history)` and `explain_command(cmd)`** |
-| Deploy | CLI | **CLI + VS Code `Ctrl+Shift+P -> nl2sh` (daily at Wipro) + Gradio HF Space** |
+| CLI | Local command generation and review | Execution is opt-in with `--execute` |
+| Gradio Space | Public interactive demonstration | Generation-only; no shell execution |
+| MCP server | Tool access from MCP-compatible clients | Returns commands and analysis only |
+| VS Code extension | Command-palette access to the local CLI | Uses the local CLI backend |
 
-## 12-day plan – 3h/day after Wipro
+## Safety and security
 
-### Day 1-2 DATA – 125k
+The project is designed around human review, not autonomous shell execution.
+
+- Recursive deletion of critical paths is refused.
+- Device/filesystem writes, embedded shell or script execution, download-and-pipe patterns, reboot/shutdown, Git cleanup, Docker pruning, and network shell patterns are flagged as dangerous.
+- Dry-run previews are available for selected destructive commands.
+- The public Gradio Space contains no command execution path.
+- Local `--execute` remains inherently powerful and must only be used with explicit confirmation in a restricted environment.
+- Risk labels are advisory and are not a security boundary.
+
+See [SECURITY.md](SECURITY.md) for the reporting policy and deployment guidance.
+
+## Testing
+
+Run the complete test suite:
+
 ```bash
-python -m src.data_prep --build   # blair/nl2bash 10k + ShellGPT 30k + Qwen-7B paraphrase 3x -> 125k, shellcheck -S error, drop rm -rf /|mkfs|dd, split 120k/5k + 200 golden
-python -m src.data_prep --check
-```
-Format `{"instruction":"extract tar.gz to /tmp","output":"tar -xzf archive.tar.gz -C /tmp"}`. Paraphrase gated by `NL2SH_PARAPHRASE_LLM=1` else template fallback.
-
-### Day 3-4 TRAIN – QLoRA
-```bash
-# Day3 baseline: base 1.5B zero-shot on 200 -> 45%
-python -m src.train --baseline
-
-# Day4 SFT: Kaggle T4 free ~4h
-python -m src.train --wandb  # r16 alpha16 dropout0.05 gate_proj, epochs2 batch2 grad_accum4 lr2e-4 cosine seq_len2048 -> LoRA 25MB
-```
-Notebook: `notebooks/02_fine_tune.ipynb` (also `01_data_exploration.ipynb`).
-
-### Day 5 MERGE + QUANTIZE + PUBLISH (completed locally)
-```bash
-python scripts/merge_quantize_publish.py --lora models/nl2sh-lora --push --hf-user HariHaran9597
-# -> <your-hf-user>/nl2sh-1.5b + <your-hf-user>/nl2sh-1.5b-Q4_K_M-GGUF -> test llama.cpp -m models/gguf/nl2sh-1.5b.Q4_K_M.gguf -p "extract tar"
+python -m pytest -q
 ```
 
-### Day 6 Context-aware (no retrain)
-`src/context.py` – `~/.nl2sh/history.json` stores `pwd + last 5`. Injected as:
-```
-History: [tar -xzf app.tar.gz -C /tmp, ls /tmp]
-Pwd: /tmp
-User: now show large files
-Command:
-```
+The current suite covers context construction, Windows-path normalization, risk classification, safety patterns, CLI extraction, benchmark fixtures, and evaluation helpers. GitHub Actions runs the test suite and Python compilation checks on pushes and pull requests.
 
-### Day 7 Risk+Explain+Dry-run
-`src/risk.py` – `classify()` -> LOW/MED/HIGH + `explain()` (flag map + `man` snippet + `shellcheck`) + `dry_run_for()` (find -delete -> -print, rm -> count files). 200 dangerous -> 100% HIGH. CLI prints badge + dry-run prompt.
+## Repository structure
 
-### Day 8 MCP Server
-```bash
-pip install mcp
-python mcp_server/server.py   # FastMCP, tools: get_shell_command(nl,pwd,history), explain_command(cmd)
-# Add `mcp.json` to an MCP-compatible client; live client wiring still needs a local smoke test.
+```text
+cli/                 Command-line interface and backend adapters
+data/                Evaluation cases, fixtures, and measured results
+mcp_server/          MCP tool server
+models/              Small metadata files; large artifacts are excluded from Git
+notebooks/            Exploration, training, merge, and evaluation notebooks
+scripts/              Benchmark, serving, verification, and release utilities
+space/                Standalone generation-only Gradio Space
+src/                  Context, safety, risk, training, and evaluation modules
+tests/                Automated test suite
+vscode-extension/    VS Code integration
 ```
 
-### Day 9 Benchmark (MEASURED, 300-task InterCode-ALFA split, official fixtures)
-```bash
-python scripts/build_benchmark.py          # 300 cases + fixture/difficulty/bash2
-python scripts/batch_generate.py           # 300 gens via local llama-server
-python scripts/merge_eval_cases.py
-python -m src.evaluate --cases data/eval_cases.jsonl --mode self --no-docker --out data/eval_results.json
-python scripts/audit_strict.py             # honest breakdown (see below)
-```
-| Model | Size | Score (this sandbox) | Easy/Med/Hard | Features |
-|---|---|---|---|---|
-| Qwen2.5-Coder-1.5B untuned (Q4_K_M) | 1.1 GB | 0.387 raw / 0.230 gradeable | 0.63 / 0.28 / 0.25 | - |
-| **nl2sh+ (this work)** | **940 MB** | **0.553 raw / 0.448 gradeable** | **0.72 / 0.54 / 0.40** | **Context+Risk+MCP** |
-| **Fine-tune delta** | — | **+0.167 raw / +0.218 gradeable (+50 tasks)** | **+0.09 / +0.26 / +0.15** | — |
-| Thor nl2sh (reported, Docker-Ubuntu) | 941 MB | 0.620 | level/+3/+9 | blocklist |
+## Documentation
 
-Reading the score honestly: 166/300 raw execution-agreement; 47 byte-exact stdout proofs;
-31 silent-mutation agreements; 17 via alternative reference; 57 tasks ungradeable
-locally (missing Linux-only tools: sar/uptime/ifconfig/lsof — same commands fail
-identically on both sides). Gradeable-only rate 109/243 = 0.448. Windows git-bash
-sandbox ≠ Docker Ubuntu, so cross-paper comparison is approximate — the
-like-for-like claim is the untuned-base delta (above), measured in the same harness.
+- [Training results and evaluation methodology](TRAINING_RESULTS.md)
+- [Model card](MODEL_CARD.md)
+- [Security policy](SECURITY.md)
+- [Release checkpoint](CHECKPOINT.md)
+- [Kaggle training guide](KAGGLE_GUIDE.md)
 
-### Day 10 Deploy where you use daily
-```bash
-pip install -e .; nl2sh setup --model models/gguf/nl2sh-1.5b.Q4_K_M.gguf
-nl2sh "delete logs"  # command + explain + risk + dry-run
-# VS Code: code --install-extension vscode-extension && Ctrl+Shift+P -> nl2sh
-# Gradio: upload `space/` to an HF Space; it never executes commands
-```
+## Limitations
 
-### Day 11-12 README + Resume
-Pin to GitHub #2 (after policy-auditor). Badges at top.
+- Natural-language-to-shell translation is not guaranteed to be correct.
+- The benchmark measures execution agreement, not complete semantic correctness.
+- The gradeable-only score is limited by the local Windows environment and is not a substitute for a Linux/Docker evaluation.
+- Risk analysis is heuristic and cannot replace sandboxing, permissions, backups, or human review.
+- The public demo is intended for experimentation and portfolio review, not unattended production automation.
 
-## Install
-```bash
-pip install -e .                # CLI nl2sh
-pip install -r requirements-train.txt  # Kaggle/Colab only
-pytest                          # run the full test suite
-```
+## License and attribution
 
-## Project layout
-```
-src/data_prep.py  train.py  context.py  risk.py  safety.py  evaluate.py
-cli/nl2sh.py      mcp_server/server.py  app.py  vscode-extension/
-notebooks/  scripts/  tests/  data/
-```
-
-## Resume bullet (LOCK, copy-paste — all numbers measured, none projected)
-> **nl2sh+ — Qwen2.5-Coder-1.5B NL->Bash, QLoRA, Q4_K_M, MCP** [GitHub | HF GGUF | Demo]
-> * Fine-tuned 1.5B on 40.6k NL-Bash via QLoRA/Unsloth (loss 2.36→0.80, 5080 steps), Q4_K_M 940MB published on Hugging Face; 0.553 execution-agreement on a 300-task InterCode-ALFA split vs 0.387 untuned base (**+0.167, +50 tasks**, biggest gains on medium +0.26); built context-aware (pwd+history), risk-scored Explain+Dry-run, and an MCP server
-
-## License
-Apache-2.0
+The application code is released under the Apache-2.0 license. The fine-tuned model is based on Qwen2.5-Coder-1.5B-Instruct, and training/evaluation data are from NL2SH-ALFA. Refer to [MODEL_CARD.md](MODEL_CARD.md) for attribution and artifact details.
