@@ -7,8 +7,6 @@ training format) with stop=["<|im_end|>"].
 import os
 from functools import lru_cache
 
-os.environ.setdefault("HF_HUB_CACHE", "/data/hub")  # persistent Space storage
-
 import gradio as gr
 from huggingface_hub import snapshot_download
 from llama_cpp import Llama
@@ -33,13 +31,22 @@ from context import build_prompt
 REPO = os.environ.get("NL2SH_GGUF_REPO", "justhariharan/nl2sh-1.5b-Q4_K_M-GGUF")
 FILE = os.environ.get("NL2SH_GGUF_FILE", "nl2sh-1.5b.Q4_K_M.gguf")
 REVISION = os.environ.get("NL2SH_GGUF_REVISION", "main")
+CACHE_DIR = os.environ.get(
+    "NL2SH_CACHE_DIR",
+    os.path.join(os.path.expanduser("~"), ".cache", "nl2sh"),
+)
 CHATML = "<|im_start|>user\n{instruction}<|im_end|>\n<|im_start|>assistant\n{output}<|im_end|>"
 
 @lru_cache(maxsize=1)
 def _load_model():
     """Load the pinned public artifact once, on the first user request."""
-    print(f"downloading GGUF {REPO}@{REVISION} (cached in /data when available)...")
-    model_dir = snapshot_download(repo_id=REPO, revision=REVISION, allow_patterns=[FILE])
+    print(f"downloading GGUF {REPO}@{REVISION} (cache={CACHE_DIR})...")
+    model_dir = snapshot_download(
+        repo_id=REPO,
+        revision=REVISION,
+        allow_patterns=[FILE],
+        cache_dir=CACHE_DIR,
+    )
     print("loading model on CPU...")
     model = Llama(model_path=os.path.join(model_dir, FILE), n_ctx=512,
                   n_threads=min(4, os.cpu_count() or 1), verbose=False)

@@ -25,3 +25,5 @@ Set `NL2SH_GGUF_REPO`, `NL2SH_GGUF_FILE`, and optionally
 
 The requirements use the published CPU wheel for `llama-cpp-python` so the
 Space does not spend its build window compiling llama.cpp from source.
+The model cache defaults to the writable user cache; set `NL2SH_CACHE_DIR`
+only if the Space has a writable persistent-storage mount.
