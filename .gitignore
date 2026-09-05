@@ -26,3 +26,7 @@ data/vsce_out.txt
 wandb/
 .vscode/
 nl2sh_plus.egg-info/
+
+# Separate workspace projects; keep this portfolio repository focused on nl2sh+.
+Agents/
+agentic-risk-radar/
