@@ -100,6 +100,20 @@ cd nl2sh-Junior-Shell-Assistant
 python -m pip install -e ".[dev]"
 ```
 
+For the lightweight local CLI only, install the package without development or web-app dependencies:
+
+```bash
+python -m pip install .
+```
+
+Optional components are isolated so a CLI user does not install Gradio, MCP, or training libraries:
+
+```bash
+python -m pip install ".[app]"    # optional Gradio UI
+python -m pip install ".[mcp]"    # optional MCP server
+python -m pip install ".[train]"  # optional training/evaluation tooling
+```
+
 ### Try the deterministic mock backend
 
 The mock backend is useful for testing the interface without downloading a model or starting a server.
@@ -121,13 +135,13 @@ python -m cli.nl2sh "show the largest files in /tmp"
 
 The server is expected at `http://127.0.0.1:8080`. Configure another compatible endpoint with `--base-url` or the environment variables documented in the CLI source.
 
-### Run the Gradio application locally
+### Run the optional Gradio application locally
 
 ```bash
 python app.py
 ```
 
-For the public deployment version, upload the contents of `space/` to a Gradio Hugging Face Space. The Space downloads the public GGUF artifact on demand and never executes generated commands.
+The local CLI is the primary product and does not require hosted inference. The `space/` folder is an optional generation-only demonstration; it downloads the public GGUF artifact on demand and never executes generated commands.
 
 ## Interfaces
 
