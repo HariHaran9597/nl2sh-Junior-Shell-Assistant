@@ -13,6 +13,19 @@ import gradio as gr
 from huggingface_hub import snapshot_download
 from llama_cpp import Llama
 
+try:
+    import spaces
+except ImportError:
+    # Keep local CPU runs working while allowing ZeroGPU to detect the
+    # decorated Gradio handler when the `spaces` package is present.
+    class _LocalSpaces:
+        @staticmethod
+        def GPU(*args, **kwargs):
+            if args and callable(args[0]) and len(args) == 1 and not kwargs:
+                return args[0]
+            return lambda function: function
+    spaces = _LocalSpaces()
+
 import risk
 import safety
 from context import build_prompt
@@ -44,6 +57,7 @@ def generate(prompt: str) -> str:
     return text.splitlines()[0].strip().lstrip("$ ").strip()
 
 
+@spaces.GPU(duration=60)
 def infer(nl, pwd, hist_str):
     hist = [h.strip() for h in hist_str.split(",") if h.strip()] if hist_str else []
     pwd = pwd or "/tmp"

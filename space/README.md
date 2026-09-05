@@ -17,8 +17,9 @@ served as GGUF Q4_K_M on CPU, with advisory context-aware prompts, LOW/MED/HIGH
 risk badges, flag explanations and dry-runs. This Space generates suggestions
 only; it never executes shell commands.
 
-Deploy: upload this folder to an HF Space using CPU Basic hardware. This app
-uses llama.cpp on CPU and does not require ZeroGPU.
+Deploy: upload this folder to an HF Space. The app uses llama.cpp on CPU, but
+also includes a lightweight `@spaces.GPU` handler so it can run on an account
+that is already assigned ZeroGPU.
 Set `NL2SH_GGUF_REPO`, `NL2SH_GGUF_FILE`, and optionally
 `NL2SH_GGUF_REVISION` to point at another pinned GGUF artifact.
 
