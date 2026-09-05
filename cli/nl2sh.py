@@ -3,7 +3,7 @@ nl2sh+ CLI – Context-aware + Risk+Explain+Dry-run
 Backends: llama-cpp / ollama / openai / mock
 """
 from __future__ import annotations
-import argparse, json, os, subprocess, sys, time, urllib.request, urllib.error
+import argparse, json, os, platform, subprocess, sys, time, urllib.request, urllib.error
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -41,6 +41,57 @@ class OllamaBackend:
 class MockBackend:
     def generate(self,prompt,temperature=0.0,max_tokens=64): return _mock(prompt)
 
+
+_LOCAL_SERVER_PROCESS = None
+
+
+def _server_base(url: str) -> str:
+    return url.rstrip("/")[:-3] if url.rstrip("/").endswith("/v1") else url.rstrip("/")
+
+
+def _server_ready(url: str) -> bool:
+    try:
+        with urllib.request.urlopen(f"{_server_base(url)}/health", timeout=2) as response:
+            return response.status == 200
+    except (OSError, urllib.error.URLError):
+        return False
+
+
+def _is_local_url(url: str) -> bool:
+    from urllib.parse import urlparse
+    host = urlparse(_server_base(url)).hostname
+    return host in {None, "127.0.0.1", "localhost", "::1"}
+
+
+def _start_local_server(model: str, bin_dir: str, base_url: str):
+    global _LOCAL_SERVER_PROCESS
+    if _server_ready(base_url):
+        return
+    from urllib.parse import urlparse
+    server = next((p for p in Path(bin_dir).rglob("*")
+                   if p.is_file() and p.name in {"llama-server", "llama-server.exe"}), None)
+    if not server:
+        raise RuntimeError(f"llama-server not found under {bin_dir}; run `nl2sh doctor`")
+    parsed = urlparse(_server_base(base_url))
+    host = parsed.hostname or "127.0.0.1"
+    port = parsed.port or 8080
+    command = [str(server), "--model", model, "--host", host, "--port", str(port),
+               "--threads", str(min(4, os.cpu_count() or 1))]
+    kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+    if platform.system() == "Windows":
+        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+    else:
+        kwargs["start_new_session"] = True
+    _LOCAL_SERVER_PROCESS = subprocess.Popen(command, **kwargs)
+    deadline = time.time() + 120
+    while time.time() < deadline:
+        if _server_ready(base_url):
+            return
+        if _LOCAL_SERVER_PROCESS.poll() is not None:
+            raise RuntimeError("llama-server exited before becoming ready")
+        time.sleep(0.5)
+    raise RuntimeError("timed out waiting for llama-server; run `nl2sh doctor`")
+
 def _post(url,payload,timeout):
     req=urllib.request.Request(url,data=json.dumps(payload).encode(),headers={"Content-Type":"application/json"},method="POST")
     key=os.environ.get("NL2SH_OPENAI_API_KEY")
@@ -57,7 +108,12 @@ def _build_backend(args):
         base=args.base_url or os.environ.get("NL2SH_OPENAI_BASE_URL","http://127.0.0.1:8080/v1"); model=args.model or os.environ.get("NL2SH_OPENAI_MODEL","")
         if not model: raise SystemExit("openai backend requires --model")
         return LlamaCppBackend(base,model,args.timeout)
-    base=args.base_url or os.environ.get("NL2SH_BASE_URL","http://127.0.0.1:8080/v1"); model=args.model or os.environ.get("NL2SH_MODEL","nl2sh")
+    cfg=_load_cfg()
+    base=args.base_url or os.environ.get("NL2SH_BASE_URL") or cfg.get("base_url") or "http://127.0.0.1:8080/v1"
+    model=args.model or os.environ.get("NL2SH_MODEL") or cfg.get("model") or "nl2sh"
+    if (not args.base_url and not os.environ.get("NL2SH_BASE_URL") and
+            cfg.get("bin_dir") and Path(model).exists() and _is_local_url(base)):
+        _start_local_server(model, cfg["bin_dir"], base)
     return LlamaCppBackend(base,model,args.timeout)
 
 def _extract(text:str)->str:
@@ -143,7 +199,9 @@ def process(prompt:str, backend, execute:bool, n:int=1, quiet:bool=False, with_c
         print("!! Bash was not found. Install Git Bash/WSL or omit --execute.", file=sys.stderr)
         return 127
 
-def _config_path(): return Path(os.environ.get("NL2SH_CONFIG", str(Path.home()/".nl2sh/config.json")))
+def _config_path():
+    default = Path(os.environ.get("NL2SH_HOME", Path.home() / ".nl2sh")).expanduser() / "config.json"
+    return Path(os.environ.get("NL2SH_CONFIG", str(default))).expanduser()
 def _load_cfg():
     p=_config_path()
     if p.exists():
@@ -175,12 +233,28 @@ def main(argv=None):
     return code
 
 def _setup(argv):
-    ap=argparse.ArgumentParser(prog="nl2sh setup"); ap.add_argument("--model"); ap.add_argument("--bin-dir"); ap.add_argument("--base-url")
+    ap=argparse.ArgumentParser(prog="nl2sh setup")
+    ap.add_argument("--model", help="register an existing GGUF instead of downloading the default")
+    ap.add_argument("--bin-dir", help="register an existing llama.cpp directory")
+    ap.add_argument("--base-url", help="use an existing OpenAI-compatible server")
     a=ap.parse_args(argv); cfg=_load_cfg()
-    if a.model: cfg["model"]=a.model
-    if a.bin_dir: cfg["bin_dir"]=a.bin_dir
-    if a.base_url: cfg["base_url"]=a.base_url
-    _save_cfg(cfg); print(f"Saved: {cfg}"); return 0
+    if a.model or a.bin_dir or a.base_url:
+        if a.model: cfg["model"]=str(Path(a.model).expanduser().resolve())
+        if a.bin_dir: cfg["bin_dir"]=str(Path(a.bin_dir).expanduser().resolve())
+        if a.base_url: cfg["base_url"]=a.base_url
+        _save_cfg(cfg); print(f"Saved: {cfg}"); return 0
+    try:
+        from src.local_setup import install_model, install_runtime
+        model=install_model()
+        bin_dir, tag=install_runtime()
+        cfg.update({"model":str(model), "bin_dir":str(bin_dir), "base_url":"http://127.0.0.1:8080/v1", "runtime":tag})
+        _save_cfg(cfg)
+        print(f"Setup complete. Runtime: llama.cpp {tag}")
+        print("Try: nl2sh \"show the largest files in /tmp\"")
+        return 0
+    except Exception as exc:
+        print(f"Setup failed: {exc}", file=sys.stderr)
+        return 1
 
 def _doctor(argv):
     ap=argparse.ArgumentParser(prog="nl2sh doctor"); ap.parse_args(argv)
@@ -193,7 +267,7 @@ def _doctor(argv):
     else: print("  [??] no model – nl2sh setup --model <gguf>"); probs.append("model")
     bd=cfg.get("bin_dir")
     if bd:
-        p=Path(bd); found=[x for x in p.glob("*") if x.name in ("llama-server","llama-server.exe","llama-cli.exe")]
+        p=Path(bd); found=[x for x in p.rglob("*") if x.name in ("llama-server","llama-server.exe","llama-cli.exe")]
         if found: print(f"  [ok] llama.cpp in {bd}: {[f.name for f in found]}")
         else: print(f"  [!!] no llama-server in {bd}"); probs.append("bin_dir")
     else: print("  [??] no bin_dir (ok if ollama/openai)")

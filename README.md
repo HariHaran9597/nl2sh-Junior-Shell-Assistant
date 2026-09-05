@@ -126,14 +126,35 @@ python -m cli.nl2sh --mock "delete everything in root"
 
 ### Run the local GGUF model
 
-Download the public [GGUF artifact](https://huggingface.co/justhariharan/nl2sh-1.5b-Q4_K_M-GGUF), place it at `models/gguf/nl2sh-1.5b.Q4_K_M.gguf`, and provide a local llama.cpp server binary under `tools/llama.cpp/`.
+The recommended user setup downloads the pinned GGUF model and the matching
+CPU `llama.cpp` runtime into `~/.nl2sh` (or `%USERPROFILE%\\.nl2sh` on Windows):
+
+```bash
+nl2sh setup
+```
+
+The setup command verifies SHA-256 checksums, stores no secrets, and does not
+enable command execution. It uses the public [GGUF artifact](https://huggingface.co/justhariharan/nl2sh-1.5b-Q4_K_M-GGUF)
+as a download source; inference runs locally after the download completes.
+
+Check the installation with:
+
+```bash
+nl2sh doctor
+```
+
+The older manual flow remains available for custom runtimes: place the model
+at `models/gguf/nl2sh-1.5b.Q4_K_M.gguf` and provide a local llama.cpp server
+binary under `tools/llama.cpp/`.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\serve.ps1
 python -m cli.nl2sh "show the largest files in /tmp"
 ```
 
-The server is expected at `http://127.0.0.1:8080`. Configure another compatible endpoint with `--base-url` or the environment variables documented in the CLI source.
+After `nl2sh setup`, the CLI automatically starts the local server when the
+first request needs it. Configure another compatible endpoint with
+`--base-url` or the environment variables documented in the CLI source.
 
 ### Run the optional Gradio application locally
 
