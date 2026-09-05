@@ -19,3 +19,6 @@ only; it never executes shell commands.
 Deploy: upload this folder to a new HF Space (Gradio SDK, cpu-basic hardware).
 Set `NL2SH_GGUF_REPO`, `NL2SH_GGUF_FILE`, and optionally
 `NL2SH_GGUF_REVISION` to point at another pinned GGUF artifact.
+
+The requirements use the published CPU wheel for `llama-cpp-python` so the
+Space does not spend its build window compiling llama.cpp from source.

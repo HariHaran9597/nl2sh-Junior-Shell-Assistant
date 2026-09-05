@@ -1,3 +1,6 @@
 gradio>=4.0.0
-llama-cpp-python>=0.3.0
+# Use the published CPU wheel so Hugging Face Spaces does not compile llama.cpp
+# from source and hit the build timeout.
+--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+llama-cpp-python==0.3.35
 huggingface_hub>=0.25.0
