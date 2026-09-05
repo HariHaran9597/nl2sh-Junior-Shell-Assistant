@@ -5,6 +5,7 @@ colorFrom: green
 colorTo: blue
 sdk: gradio
 sdk_version: 4.44.0
+suggested_hardware: cpu-basic
 app_file: app.py
 pinned: false
 ---
@@ -16,7 +17,8 @@ served as GGUF Q4_K_M on CPU, with advisory context-aware prompts, LOW/MED/HIGH
 risk badges, flag explanations and dry-runs. This Space generates suggestions
 only; it never executes shell commands.
 
-Deploy: upload this folder to a new HF Space (Gradio SDK, cpu-basic hardware).
+Deploy: upload this folder to an HF Space using CPU Basic hardware. This app
+uses llama.cpp on CPU and does not require ZeroGPU.
 Set `NL2SH_GGUF_REPO`, `NL2SH_GGUF_FILE`, and optionally
 `NL2SH_GGUF_REVISION` to point at another pinned GGUF artifact.
 
