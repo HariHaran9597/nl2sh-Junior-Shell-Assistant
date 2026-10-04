@@ -1,7 +1,7 @@
 """
 Sandbox evaluator – InterCode-ALFA methodology.
 Runs generated vs reference in Docker (--network none) and diffs stdout+filesystem.
-Also scores golden dangerous 200 (100% High flagged).
+Risk regression examples are maintained separately in tests/test_risk.py.
 """
 from __future__ import annotations
 import json, os, re, subprocess, tempfile, time
@@ -98,16 +98,29 @@ def _run_cmd(argv:list[str], cwd:Path|None)->tuple:
         except Exception: pass
         return 124,"","TIMEOUT",True
 
-def _msys_root()->Path|None:
-    """Map / to the msys root (the Git install dir on Windows, real / on Linux)."""
-    if os.name!="nt":
-        return Path("/")  # Linux/macOS (Kaggle/Colab): absolute paths are real
-    bash=_find_bash()
-    if not bash: return None
-    p=Path(bash)
-    if p.parent.name.lower()=="bin" and p.name.lower() in ("bash.exe","bash","sh"):
-        return p.parent.parent
-    return Path("/")
+_LOCAL_FIXTURE_DIR = tempfile.TemporaryDirectory(prefix="nl2sh-fixtures-")
+
+def _msys_root()->Path:
+    """Local fixture workspace; never use / or the Git installation directory."""
+    return Path(_LOCAL_FIXTURE_DIR.name)
+
+def _rewrite_fixture_paths(text:str)->str:
+    """Redirect known InterCode paths for local development evaluation.
+
+    This is path adaptation, not a sandbox for arbitrary shell commands.
+    Docker remains the boundary for evaluating untrusted model output.
+    """
+    root = _msys_root().as_posix()
+    if os.name == "nt" and len(root) > 1 and root[1] == ":":
+        root = "/" + root[0].lower() + root[2:]
+    pattern = r"(?<![\w./-])/(testbed|system|workspace|backup|setup_nl2b_fs_[1235]\.sh)(?=/|[^\w.-]|$)"
+    return re.sub(pattern, lambda m: root + "/" + m.group(1), text)
+
+def _run_fixture_setup(bash:str, source:Path)->None:
+    # read_text normalizes CRLF so Windows checkouts work with Git Bash too.
+    script = _rewrite_fixture_paths(source.read_text(encoding="utf-8"))
+    subprocess.run([bash, "-s"], input=script, text=True, capture_output=True,
+                   timeout=180)
 
 def _abs_root(root:str)->Path|None:
     mr=_msys_root()
@@ -131,7 +144,7 @@ def _build_templates()->None:
             _TEMPLATES[fx]={"roots":{},"setup":None}
             continue
         try:
-            subprocess.run([bash,str(FIXTURE_DIR/name)],capture_output=True,timeout=180)
+            _run_fixture_setup(bash, FIXTURE_DIR/name)
         except Exception: pass  # best-effort: BSD-isms (fs3) fail on some lines upstream too
         entry={"roots":{},"setup":None}
         for r in spec["roots"]:
@@ -152,7 +165,7 @@ def _slow_setup(fx:str, sandbox:Path)->None:
     bash=_find_bash()
     if bash and src.exists():
         try:
-            subprocess.run([bash,str(src)],capture_output=True,timeout=180)
+            _run_fixture_setup(bash, src)
         except Exception: pass
     try:
         import shutil
@@ -220,7 +233,7 @@ def run_local(cmd:str, image:str|None=None, fixture:str="fs4")->tuple:
         (sandbox/"input.txt").write_text("hello world\n"*100); (sandbox/"data.txt").write_text("line1\nline2\nline3\n")
         _prep_fixtures(fixture, sandbox)
         before=_snap_all(sandbox,_roots_for(fixture))
-        code,so,se,timed_out=_run_cmd([bash,"-c",cmd],sandbox)
+        code,so,se,timed_out=_run_cmd([bash,"-c",_rewrite_fixture_paths(cmd)],sandbox)
         if code<0: return code,so,se,{}
         if timed_out: return 124,so,se,{}
         return code,so,se,_delta(before,_snap_all(sandbox,_roots_for(fixture)))

@@ -1,5 +1,10 @@
 # nl2sh+
 
+[![CI](https://github.com/HariHaran9597/nl2sh-Junior-Shell-Assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/HariHaran9597/nl2sh-Junior-Shell-Assistant/actions/workflows/ci.yml)
+
+**Status:** installable local CLI and model artifacts, with optional Gradio, MCP, and
+VS Code interfaces. This README does not currently advertise a verified public web demo.
+
 ### A context-aware natural-language-to-Bash assistant powered by a fine-tuned Qwen2.5-Coder model
 
 [![CI](https://github.com/HariHaran9597/nl2sh-Junior-Shell-Assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/HariHaran9597/nl2sh-Junior-Shell-Assistant/actions/workflows/ci.yml)
@@ -195,6 +200,12 @@ python -m pytest -q
 ```
 
 The current suite covers context construction, Windows-path normalization, risk classification, safety patterns, CLI extraction, benchmark fixtures, and evaluation helpers. GitHub Actions runs the test suite and Python compilation checks on pushes and pull requests.
+
+Tests use the committed 300-task evaluation records and 30 explicit dangerous-command
+regression examples. The original generated 200-command file is not distributed, so the
+regression suite does not claim to reproduce that corpus. Known local fixture paths are
+redirected into temporary directories; this adaptation is not a security sandbox.
+The historical benchmark scores above have not been regenerated with this fixture change.
 
 ## Repository structure
 

@@ -10,7 +10,7 @@ from src.evaluate import FIXTURES, _abs_root, _prep_fixtures, _roots_for, run_ev
 
 def _cases():
     rows = [json.loads(l) for l in
-            open(Path(__file__).resolve().parent.parent / "data" / "benchmark_cases.jsonl",
+            open(Path(__file__).resolve().parent.parent / "data" / "eval_cases.jsonl",
                  encoding="utf-8") if l.strip()]
     return rows
 
@@ -33,7 +33,7 @@ def test_roots_known():
 
 
 def test_fs5_setup_builds_tree(tmp_path):
-    # smallest tree; runs official setup script, then cleans the global root
+    # Official fixture paths are redirected into a temporary local workspace.
     _prep_fixtures("fs5", tmp_path)
     marker = _abs_root("/testbed")
     assert marker is not None
@@ -93,6 +93,23 @@ def test_ref2_accepted():
     res = run_eval(cases, mode="self", use_docker=False)
     assert res[0].passed is True
     assert res[0].matched == "reference2"
+
+
+def test_local_fixture_root_is_temporary():
+    import src.evaluate as ev
+    root = ev._msys_root()
+    assert root.name.startswith("nl2sh-fixtures-")
+    assert ev._abs_root("/testbed") == root / "testbed"
+
+
+def test_absolute_fixture_commands_use_temporary_tree(tmp_path):
+    import src.evaluate as ev
+    ev._prep_fixtures("fs5", tmp_path)
+    code, stdout, stderr, _ = ev.run_local(
+        "cat /testbed/dir1/textfile1.txt", fixture="fs5"
+    )
+    assert code == 0, stderr
+    assert stdout.strip() == "Hello, World!"
 
 
 if __name__ == "__main__":
