@@ -1,0 +1,30 @@
+{
+  "name": "nl2sh+ Qwen2.5-0.5B quick-run adapter",
+  "status": "candidate; export and held-out evaluation not yet completed",
+  "adapter_weights_committed": false,
+  "adapter_file": "adapter_model.safetensors",
+  "adapter_bytes": 35237104,
+  "adapter_sha256": "45b8d89b00efde987c7f9349ea6d2fdbb98b215e0dada015656b7a56e8fe81d8",
+  "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "base_model_revision_at_training": null,
+  "dataset": "westenfelder/NL2SH-ALFA",
+  "dataset_revision": null,
+  "training_rows": 10000,
+  "epochs": 1,
+  "max_sequence_length": 256,
+  "seed": 42,
+  "lora_rank": 16,
+  "lora_alpha": 32,
+  "lora_dropout": 0.05,
+  "learning_rate": 0.0002,
+  "batch_size_per_device": 8,
+  "gradient_accumulation_steps": 2,
+  "source_notebook": "training/quick_train_qwen25_0_5b.ipynb",
+  "artifact_location": "user-held local adapter; not committed to this repository",
+  "known_gaps": [
+    "Base model and dataset revisions were not pinned in the training notebook.",
+    "Training metrics and run logs were not included in the downloaded adapter folder.",
+    "The notebook's four sample prompts are a smoke check, not a held-out evaluation.",
+    "This adapter has not been compared against the published 1.5B model."
+  ]
+}

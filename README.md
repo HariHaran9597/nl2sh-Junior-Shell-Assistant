@@ -170,6 +170,29 @@ nl2sh doctor
 
 Commands are displayed for inspection and are not run by default. `--execute` always asks for confirmation; known high-impact commands are blocked by the safety policy. Risk checks are heuristic and are not a sandbox or a guarantee that a command is safe.
 
+### Use an already-trained 0.5B adapter
+
+An alternate Colab run trained a Qwen2.5-0.5B adapter on 10,000 examples for
+one epoch. The adapter is not a complete model, and this run has not been
+matched against the published model's benchmark. To use it locally, export it
+with the [existing-adapter export notebook](https://colab.research.google.com/github/HariHaran9597/nl2sh-Junior-Shell-Assistant/blob/main/training/export_existing_adapter_colab.ipynb)
+or follow [the export steps](training/README.md#export-an-already-trained-05b-adapter-no-retraining).
+The export uses the base model declared in the adapter and produces a local
+Q4_K_M GGUF. It does not change the current default model or its reported
+results.
+
+After downloading the GGUF, register it as an alternate local model:
+
+```powershell
+$env:NL2SH_HOME = "D:\nl2sh-home"
+nl2sh setup --model "D:\models\nl2sh-q4_k_m.gguf"
+nl2sh doctor
+nl2sh "find files larger than 100 MB"
+```
+
+Review every generated command. This alternate model is a candidate; its
+training notebook's four sample prompts do not establish accuracy or safety.
+
 Optional Bash prompt integration:
 
 ```bash
@@ -262,6 +285,7 @@ vscode-extension/    VS Code integration
 - [Release checkpoint](CHECKPOINT.md)
 - [Kaggle training guide](KAGGLE_GUIDE.md)
 - [Reproducible GPU training bundle](training/README.md)
+- [Export-only notebook for an existing adapter](training/export_existing_adapter_colab.ipynb)
 
 ## Limitations
 

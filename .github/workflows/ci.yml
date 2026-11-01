@@ -21,4 +21,4 @@ jobs:
       - run: python -m pytest -q
       - run: python -m cli.nl2sh --mock "find files bigger than 100 MB"
       - run: python -m py_compile $(find src cli mcp_server space scripts training -name '*.py') app.py
-      - run: python -c "import json; json.load(open('training/colab_kaggle.ipynb', encoding='utf-8'))"
+      - run: python -c "import json; [json.load(open(path, encoding='utf-8')) for path in ('training/colab_kaggle.ipynb', 'training/quick_train_qwen25_0_5b.ipynb', 'training/export_existing_adapter_colab.ipynb', 'models/candidates/qwen2.5-0.5b-quick-run/manifest.json')]"

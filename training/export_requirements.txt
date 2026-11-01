@@ -1,0 +1,5 @@
+# Export only; keep the GPU runtime's preinstalled PyTorch/CUDA build intact.
+transformers==4.57.1
+peft==0.21.2
+safetensors==0.6.2
+huggingface_hub==0.34.4
