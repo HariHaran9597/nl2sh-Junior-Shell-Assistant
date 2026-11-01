@@ -19,4 +19,6 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]" safetensors
       - run: python -m pytest -q
-      - run: python -m py_compile $(find src cli mcp_server space scripts -name '*.py') app.py
+      - run: python -m cli.nl2sh --mock "find files bigger than 100 MB"
+      - run: python -m py_compile $(find src cli mcp_server space scripts training -name '*.py') app.py
+      - run: python -c "import json; json.load(open('training/colab_kaggle.ipynb', encoding='utf-8'))"

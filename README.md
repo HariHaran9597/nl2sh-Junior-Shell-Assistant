@@ -12,15 +12,18 @@ VS Code interfaces. This README does not currently advertise a verified public w
 [![Quantization](https://img.shields.io/badge/quantization-Q4__K__M-orange)](https://huggingface.co/justhariharan/nl2sh-1.5b-Q4_K_M-GGUF)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-`nl2sh+` translates plain-English requests into a single Bash command and presents the result with context, risk classification, explanations, and a dry-run preview. It is designed as a review-first assistant: generated commands are suggestions for a human to inspect, never instructions that the public demo executes automatically.
+`nl2sh+` helps people learn and use Linux commands: describe a task in plain English and get a Bash suggestion, a short explanation, risk notes, and a preview when one is supported. Suggestions are review-first. Nothing executes unless you pass `--execute`, confirm at the prompt, and the safety policy permits it.
 
 ## Highlights
 
 - Fine-tuned Qwen2.5-Coder-1.5B-Instruct with QLoRA on 40,639 natural-language/Bash pairs.
+- Colab/Kaggle QLoRA training bundle with pinned source revisions and run metadata.
 - Context-aware prompts using the current working directory and the last five commands.
 - Risk classification across `LOW`, `MED`, and `HIGH`, backed by a conservative `DANGER` safety policy.
 - Flag explanations and dry-run rewrites for supported destructive operations.
 - CLI with llama.cpp, Ollama, OpenAI-compatible, and mock backends.
+- Bring your own key for OpenAI, Groq, OpenRouter, Moonshot, or a compatible endpoint. Keys stay in environment variables and are never written to the CLI config.
+- Optional Bash prompt integration: type a natural-language task and press Ctrl+G to replace it with a command suggestion; review it before pressing Enter.
 - MCP server exposing command generation and command explanation tools.
 - Gradio Space implementation that only generates suggestions and never executes shell commands.
 - VS Code command-palette integration for local development workflows.
@@ -80,11 +83,13 @@ The model generates the command. The surrounding application then analyzes it in
 $ nl2sh "extract the archive to /tmp"
 tar -xzf archive.tar.gz -C /tmp
   [LOW] read-only / low risk
-  Explain: -x extract, -z gzip, -f file
+  What it does: Creates or extracts an archive; -xzf: extract a gzip-compressed tar archive.
+Suggestion only; nothing was run. Review before using it. Pass --execute to request a confirmed local run.
 
 $ nl2sh "delete all log files"
 find . -name '*.log' -delete
   [MED] find permanently deletes matched paths
+  What it does: Searches a directory tree for files matching conditions; -delete: delete each matching path.
   Dry-run: find . -name '*.log' -print
 
 $ nl2sh "delete everything from the root filesystem"
@@ -129,6 +134,21 @@ python -m cli.nl2sh --mock "delete all logs"
 python -m cli.nl2sh --mock "delete everything in root"
 ```
 
+The mock backend is only for checking the CLI flow; its output is not model quality evidence.
+
+### Use a hosted model with your own key
+
+The hosted backend supports OpenAI-compatible APIs. Configure Groq (or choose another provider), then set the provider key in your shell. Replace the model ID with one currently enabled for your account:
+
+```bash
+nl2sh setup --provider groq --model "MODEL_ID_FROM_GROQ"
+read -rsp "Groq API key: " GROQ_API_KEY; export GROQ_API_KEY; printf '\n'
+nl2sh doctor
+nl2sh "show me the 10 largest files under /var/log"
+```
+
+Supported key variables are `OPENAI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `MOONSHOT_API_KEY`, and `NL2SH_API_KEY` for a custom endpoint. In PowerShell, use `$secure = Read-Host "Groq API key" -AsSecureString; $env:GROQ_API_KEY = [System.Net.NetworkCredential]::new("", $secure).Password` to avoid echoing the key into the terminal. Do not put a key in a command argument, config file, screenshot, or chat. Hosted usage is billed by your provider. For a custom API, configure `nl2sh setup --provider custom --base-url https://your-host/v1 --model your-model`.
+
 ### Run the local GGUF model
 
 The recommended user setup downloads the pinned GGUF model and the matching
@@ -147,6 +167,17 @@ Check the installation with:
 ```bash
 nl2sh doctor
 ```
+
+Commands are displayed for inspection and are not run by default. `--execute` always asks for confirmation; known high-impact commands are blocked by the safety policy. Risk checks are heuristic and are not a sandbox or a guarantee that a command is safe.
+
+Optional Bash prompt integration:
+
+```bash
+nl2sh init bash >> ~/.bashrc
+source ~/.bashrc
+```
+
+Type a natural-language request at a Bash prompt and press **Ctrl+G**. The request is replaced with a generated command; inspect it, edit it if needed, and press Enter to run it yourself. The integration does not auto-execute.
 
 The older manual flow remains available for custom runtimes: place the model
 at `models/gguf/nl2sh-1.5b.Q4_K_M.gguf` and provide a local llama.cpp server
@@ -215,6 +246,7 @@ data/                Evaluation cases, fixtures, and measured results
 mcp_server/          MCP tool server
 models/              Small metadata files; large artifacts are excluded from Git
 notebooks/            Exploration, training, merge, and evaluation notebooks
+training/             Pinned Colab/Kaggle QLoRA script and notebook
 scripts/              Benchmark, serving, verification, and release utilities
 space/                Standalone generation-only Gradio Space
 src/                  Context, safety, risk, training, and evaluation modules
@@ -229,6 +261,7 @@ vscode-extension/    VS Code integration
 - [Security policy](SECURITY.md)
 - [Release checkpoint](CHECKPOINT.md)
 - [Kaggle training guide](KAGGLE_GUIDE.md)
+- [Reproducible GPU training bundle](training/README.md)
 
 ## Limitations
 

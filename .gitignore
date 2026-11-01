@@ -7,6 +7,9 @@ models/nl2sh-lora/
 models/gguf/
 models/gguf-base/
 nl2sh-lora-final/
+training/runs/
+training/output/
+training/artifacts/
 *.tar.gz
 kaggle_notebook.zip
 kaggle_eval_bundle.zip
