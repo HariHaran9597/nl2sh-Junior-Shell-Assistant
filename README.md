@@ -1,9 +1,8 @@
 # nl2sh+
 
-[![CI](https://github.com/HariHaran9597/nl2sh-Junior-Shell-Assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/HariHaran9597/nl2sh-Junior-Shell-Assistant/actions/workflows/ci.yml)
-
 **Status:** installable local CLI and model artifacts, with optional Gradio, MCP, and
-VS Code interfaces. This README does not currently advertise a verified public web demo.
+VS Code interfaces. The local CLI is the dependable way to try it; the hosted Space
+is an optional demo and its inference availability depends on Hugging Face hardware quota.
 
 ### A context-aware natural-language-to-Bash assistant powered by a fine-tuned Qwen2.5-Coder model
 
@@ -29,7 +28,7 @@ VS Code interfaces. This README does not currently advertise a verified public w
 - VS Code command-palette integration for local development workflows.
 - Automated tests and GitHub Actions CI.
 
-## Results
+## Training evidence
 
 ### Training
 
@@ -43,17 +42,12 @@ VS Code interfaces. This README does not currently advertise a verified public w
 | Training loss | 2.363 → 0.805 |
 | Inference artifact | Q4_K_M GGUF, approximately 940 MB |
 
-### Evaluation
-
-Evaluation uses a 300-task InterCode-ALFA split with isolated fixture execution. A generated command passes when its output and filesystem change-set agree with the reference behavior; timeouts count as failures.
-
-| Model | Raw execution agreement | Gradeable-only agreement |
-|---|---:|---:|
-| Untuned Qwen2.5-Coder-1.5B Q4_K_M | 116 / 300 (0.387) | 0.230 |
-| **nl2sh+ Q4_K_M** | **166 / 300 (0.553)** | **0.448** |
-| **Measured improvement** | **+50 tasks (+0.167)** | **+0.218** |
-
-Fine-tuned performance by task difficulty was `0.72` easy, `0.54` medium, and `0.40` hard. The local Windows Git-Bash environment lacks several Linux utilities used by the benchmark, so 57 agreeing-failure cases are included in the raw score. The gradeable-only result is the more conservative figure. See [TRAINING_RESULTS.md](TRAINING_RESULTS.md) for the complete breakdown and methodology.
+An earlier 300-task evaluation is preserved as a historical run record, but it is
+not a current benchmark: fixtures changed afterward, and the exact-text audit found
+3 repeated normalized instructions across the training and evaluation splits. No
+clean-subset score is claimed. See the
+[evaluation and contamination notes](docs/evaluation-and-contamination.md) before
+using any benchmark figures.
 
 ## How it works
 
@@ -170,28 +164,9 @@ nl2sh doctor
 
 Commands are displayed for inspection and are not run by default. `--execute` always asks for confirmation; known high-impact commands are blocked by the safety policy. Risk checks are heuristic and are not a sandbox or a guarantee that a command is safe.
 
-### Use an already-trained 0.5B adapter
-
-An alternate Colab run trained a Qwen2.5-0.5B adapter on 10,000 examples for
-one epoch. The adapter is not a complete model, and this run has not been
-matched against the published model's benchmark. To use it locally, export it
-with the [existing-adapter export notebook](https://colab.research.google.com/github/HariHaran9597/nl2sh-Junior-Shell-Assistant/blob/main/training/export_existing_adapter_colab.ipynb)
-or follow [the export steps](training/README.md#export-an-already-trained-05b-adapter-no-retraining).
-The export uses the base model declared in the adapter and produces a local
-Q4_K_M GGUF. It does not change the current default model or its reported
-results.
-
-After downloading the GGUF, register it as an alternate local model:
-
-```powershell
-$env:NL2SH_HOME = "D:\nl2sh-home"
-nl2sh setup --model "D:\models\nl2sh-q4_k_m.gguf"
-nl2sh doctor
-nl2sh "find files larger than 100 MB"
-```
-
-Review every generated command. This alternate model is a candidate; its
-training notebook's four sample prompts do not establish accuracy or safety.
+An exported Qwen2.5-0.5B adapter is an unbenchmarked experiment, not the default
+product model. Its provenance and export instructions are kept in
+[the experiment note](docs/experiments/qwen25-coder-0.5b.md).
 
 Optional Bash prompt integration:
 
@@ -221,14 +196,14 @@ first request needs it. Configure another compatible endpoint with
 python app.py
 ```
 
-The local CLI is the primary product and does not require hosted inference. The `space/` folder is an optional generation-only demonstration; it downloads the public GGUF artifact on demand and never executes generated commands.
+The local CLI is the primary product and does not require hosted inference. The `space/` folder is an optional generation-only demonstration; it downloads the public GGUF artifact on demand and never executes generated commands. Provider integrations have automated coverage, but a live BYOK request has not been verified for this release.
 
 ## Interfaces
 
 | Interface | Purpose | Execution behavior |
 |---|---|---|
 | CLI | Local command generation and review | Execution is opt-in with `--execute` |
-| Gradio Space | Public interactive demonstration | Generation-only; no shell execution |
+| Gradio Space | Optional public demo; inference may be unavailable under shared hardware quota | Generation-only; no shell execution |
 | MCP server | Tool access from MCP-compatible clients | Returns commands and analysis only |
 | VS Code extension | Command-palette access to the local CLI | Uses the local CLI backend |
 
@@ -259,17 +234,19 @@ Tests use the committed 300-task evaluation records and 30 explicit dangerous-co
 regression examples. The original generated 200-command file is not distributed, so the
 regression suite does not claim to reproduce that corpus. Known local fixture paths are
 redirected into temporary directories; this adaptation is not a security sandbox.
-The historical benchmark scores above have not been regenerated with this fixture change.
+The historical benchmark record has not been regenerated with this fixture change.
 
 ## Repository structure
 
 ```text
 cli/                 Command-line interface and backend adapters
 data/                Evaluation cases, fixtures, and measured results
+docs/                Release evidence, evaluation notes, and experiments
 mcp_server/          MCP tool server
 models/              Small metadata files; large artifacts are excluded from Git
 notebooks/            Exploration, training, merge, and evaluation notebooks
 training/             Pinned Colab/Kaggle QLoRA script and notebook
+training/archive/     Historical notebook builder and guide, not current workflow
 scripts/              Benchmark, serving, verification, and release utilities
 space/                Standalone generation-only Gradio Space
 src/                  Context, safety, risk, training, and evaluation modules
@@ -280,10 +257,12 @@ vscode-extension/    VS Code integration
 ## Documentation
 
 - [Training results and evaluation methodology](TRAINING_RESULTS.md)
+- [Release checkpoint](docs/release-checkpoint.md)
+- [Evaluation and contamination notes](docs/evaluation-and-contamination.md)
+- [0.5B adapter experiment](docs/experiments/qwen25-coder-0.5b.md)
 - [Model card](MODEL_CARD.md)
 - [Security policy](SECURITY.md)
-- [Release checkpoint](CHECKPOINT.md)
-- [Kaggle training guide](KAGGLE_GUIDE.md)
+- [Archived Kaggle guide](training/archive/KAGGLE_GUIDE_legacy.md)
 - [Reproducible GPU training bundle](training/README.md)
 - [Export-only notebook for an existing adapter](training/export_existing_adapter_colab.ipynb)
 

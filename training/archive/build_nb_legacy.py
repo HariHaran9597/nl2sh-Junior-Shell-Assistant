@@ -3,6 +3,7 @@
 # transformers (5.16.1 then 5.5.0) -> dropped Unsloth entirely. Plain
 # transformers+peft+trl rides Kaggle's preinstalled stack; nothing to mismatch.
 import json
+from pathlib import Path
 
 MD_INTRO = """\
 # NL2SH Fine-tune — v3, plain HuggingFace QLoRA (no Unsloth)
@@ -571,7 +572,7 @@ nb = {
 for i, c in enumerate(nb["cells"]):
     c["id"] = f"cell-{i:02d}"
 
-out_path = r"D:\Model_finetuing\nl2sh_kaggle_fixed.ipynb"
+out_path = Path(__file__).resolve().parents[2] / "nl2sh_kaggle_fixed.ipynb"
 with open(out_path, "w", encoding="utf-8") as f:
     json.dump(nb, f, indent=1, ensure_ascii=True)
 

@@ -1,6 +1,9 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+/build/
+/dist/
+*.egg-info/
 models/*.gguf
 models/*.bin
 models/nl2sh-lora/
@@ -28,7 +31,6 @@ data/vsce_out.txt
 .venv/
 wandb/
 .vscode/
-nl2sh_plus.egg-info/
 
 # Separate workspace projects; keep this portfolio repository focused on nl2sh+.
 Agents/

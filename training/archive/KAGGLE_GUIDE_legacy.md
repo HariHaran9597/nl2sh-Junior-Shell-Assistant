@@ -1,4 +1,8 @@
-# Kaggle GPU — Option B (Day 3-4) Step-by-step
+# Archived Kaggle GPU guide
+
+> Historical notes retained for provenance. This guide describes an older training
+> workflow and may be stale; use [the maintained training guide](../README.md) and
+> [the pinned training script](../train_qlora.py) for current instructions.
 
 **Goal:** `unsloth/Qwen2.5-Coder-1.5B → 125k → Q4_K_M 941MB → 0.62`
 

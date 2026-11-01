@@ -1,4 +1,8 @@
-# Training Results — nl2sh+ (real run, Kaggle T4)
+# Historical Training and Evaluation Results — nl2sh+ (Kaggle T4)
+
+> These are historical run records, not current-release benchmark claims. The
+> evaluation fixture implementation changed afterward; no clean-subset score has
+> been regenerated. See [the evaluation and contamination notes](docs/evaluation-and-contamination.md).
 
 - Base: `unsloth/qwen2.5-coder-1.5b-instruct-bnb-4bit` (Qwen2.5-Coder-1.5B-Instruct)
 - Data: NL2SH-ALFA train, 40,639 pairs, seq_len 512
@@ -16,7 +20,7 @@
 2. Benchmark completed against the untuned base in the same local harness; the measured comparison is below.
 3. Safety coverage is maintained in `tests/test_safety.py`; labels remain advisory and are not a substitute for sandboxing.
 
-## Benchmark — fine-tuned model (300-task InterCode-ALFA split, official fixtures)
+## Historical benchmark — fine-tuned model (300-task InterCode-ALFA split)
 
 Method: each generated command vs reference executed in isolated sandboxes
 with the official `setup_nl2b_fs_*` fixtures; pass = identical stdout +
